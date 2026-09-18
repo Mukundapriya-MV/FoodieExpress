@@ -3,22 +3,17 @@ package com.example.SpringJPA.Controller;
 import com.example.SpringJPA.Model.Food;
 import com.example.SpringJPA.Service.FoodService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/foods")
+@RequestMapping("/api/food")
 public class FoodController {
 
     @Autowired
     private FoodService foodService;
-
-    @PostMapping
-    public Food createFood(@RequestBody Food food) {
-        return foodService.saveFood(food);
-    }
 
     @GetMapping
     public List<Food> getAllFoods() {
@@ -26,17 +21,29 @@ public class FoodController {
     }
 
     @GetMapping("/{id}")
-    public Optional<Food> getFoodById(@PathVariable Long id) {
-        return foodService.getFoodById(id);
+    public ResponseEntity<Food> getFoodById(@PathVariable Long id) {
+        return foodService.getFoodById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping
+    public Food createFood(@RequestBody Food food) {
+        return foodService.saveFood(food);
     }
 
     @PutMapping("/{id}")
-    public Food updateFood(@PathVariable Long id, @RequestBody Food food) {
-        return foodService.updateFood(id, food);
+    public ResponseEntity<Food> updateFood(@PathVariable Long id, @RequestBody Food foodDetails) {
+        return foodService.getFoodById(id).map(existingFood -> {
+            existingFood.setFoodName(foodDetails.getFoodName());
+            existingFood.setPrice(foodDetails.getPrice());
+            return ResponseEntity.ok(foodService.saveFood(existingFood));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
-    public String deleteFood(@PathVariable Long id) {
-        return foodService.deleteFood(id);
+    public ResponseEntity<Void> deleteFood(@PathVariable Long id) {
+        foodService.deleteFood(id);
+        return ResponseEntity.noContent().build();
     }
 }
